@@ -5,24 +5,101 @@ import Logo from "./Logo";
 import Contact from "./Contact";
 
 const Chat = () => {
+  const [ws, setWs] = useState(null);
+  const [onlinePeople, setOnlinePeople] = useState({});
+  const [offlinePeople, setOfflinePeople] = useState({});
+  const [selectedUserId, setSelectedUserId] = useState(null);
+  const [message, setMessage] = useState([]);
+  const { username, id, setUsername, setId } = useContext(UserContext);
+
+  useEffect(() => {
+    connectToWs();
+  }, [selectedUserId]);
+  const connectToWs = () => {
+    const ws = new WebSocket("ws://localhost:4000");
+    setWs(ws);
+    ws.addEventListener("message", handleMessage);
+    ws.addEventListener("close", () => {
+      setTimeout(
+        () => {
+          console.log("Disconnect. Trying to connect.");
+          connectToWs();
+        },
+    
+        1000
+      );
+    });
+  };
+  const handleMessage = (e) => {
+    const messageData = JSON.parse(e.data);
+    if ("online" in messageData) {
+      showOnlinePeople(messageData.online);
+    } else if ("text" in messageData) {
+      if (messageData.sender === selectedUserId) {
+        setMessage((prev) => [...prev, { ...messageData }]);
+      }
+    }
+  };
+
+  const showOnlinePeople = (peopleArray) => {
+    const people = {};
+    peopleArray.forEach(({ userId, username }) => {
+      people[userId] = username;
+    });
+    setOnlinePeople(people);
+  };
+  
+  useEffect(() => {
+    axios.get("/people").then((res) => {
+      const offlinePeopleArr = res.data
+        .filter((p) => p._id != id)
+        .filter((p) => !Object.keys(onlinePeople).includes(p._id));
+      const offlinePeople = {};
+      offlinePeopleArr.forEach((p) => {
+        offlinePeople[p._id] = p;
+      });
+      setOfflinePeople(offlinePeople);
+    });
+  }, [onlinePeople]);
+
+  const onlinePeopleExclOurUser = { ...onlinePeople };
+  delete onlinePeopleExclOurUser[id];
+
+  const logout = () => {
+    axios.post("/logout").then(() => {
+      setWs(null);
+      setId(null);
+      setUsername(null);
+    });
+  };
+
   return (
     <div className="flex h-screen">
       <div className="bg-white w-1/3 flex flex-col">
         <div className="flex-grow font-semibold">
           <Logo />
-          <Contact
-            username={"test12"}
-            id={"65a8bec6b657b2384ab7576a"}
-            online={true}
-            selected={true}
-          />
 
-          <Contact
-            username={"test123"}
-            id={"65a8bf8f863135e913046003"}
-            online={false}
-            selected={false}
-          />
+          {Object.keys(onlinePeopleExclOurUser).map((userId) => (
+            <Contact
+              key={userId}
+              username={onlinePeopleExclOurUser[userId]}
+              id={userId}
+              online={true}
+              selected={userId === selectedUserId}
+              onclick={() => setSelectedUserId(userId)}
+            />
+          ))}
+          {Object.keys(offlinePeople).map((userId) => (
+            <Contact
+              key={userId}
+              username={offlinePeople[userId].username}
+              id={userId}
+              online={false}
+              selected={userId === selectedUserId}
+              onclick={() => setSelectedUserId(userId)}
+            />
+          ))}
+
         </div>
         <div className="p-2 text-center flex item-center justify-center font-semibold ">
           <span className="mr-2 text-sm text-gray-600 flex item-center mt-1">
@@ -40,11 +117,11 @@ const Chat = () => {
                 d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"
               />
             </svg>
-            Username
+            {username}
           </span>
-
-          <button className="text-sm bg-blue-100 py-1 px-2 text-gray-500 border rounded-sm hover:bg-blue-400 hover:text-white">
+          <button className="text-sm bg-blue-100 py-1 px-2 text-gray-500 border rounded-sm hover:bg-blue-400 hover:text-white" onClick={logout}>
             Logout
+            
           </button>
         </div>
       </div>

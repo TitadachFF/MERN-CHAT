@@ -19,7 +19,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use("/uploads", express.static(__dirname + "/uploads"));
 
-//connect mongo
+//Connect mongo
 const MONGODB_URI = process.env.MONGODB_URI;
 mongoose.connect(MONGODB_URI).then((success) => {
   if (!success) console.log(success);
@@ -27,7 +27,7 @@ mongoose.connect(MONGODB_URI).then((success) => {
 
 //ไว้ตรวจสอบการเชื่อมต่อฐานข้อมูล
 app.get("/", (req, res) => {
-  res.send("This is a Restful api mernchat");
+  res.send("This is a Restful api Mern-Chat");
 });
 
 //Register
@@ -86,6 +86,11 @@ app.get("/profile", (req, res) => {
   }
 });
 
+app.get("/people", async (req, res) => {
+  const users = await User.find({}, { _id: 1, username: 1 });
+  res.json(users);
+});
+
 //เป็นตัวบอกว่ามาจาก PORTไหน โดยดึงมาจากไฟล์ env
 const PORT = process.env.PORT;
 const server = app.listen(PORT, () => {
@@ -96,7 +101,7 @@ const wss = new ws.WebSocketServer({ server });
 
 wss.on("connection", (connection, req) => {
   const notifyAboutOnlinePeople = () => {
-    [...was.clients].forEach((client) => {
+    [...wss.clients].forEach((client) => {
       client.send(
         JSON.stringify({
           online: [...wss.clients].map((c) => ({
@@ -133,7 +138,7 @@ wss.on("connection", (connection, req) => {
         jwt.verify(token, secret, {}, (err, userData) => {
           if (err) throw err;
           const { userId, username } = userData;
-          connection.useId = userId;
+          connection.userId = userId;
           connection.username = username;
         });
       }
