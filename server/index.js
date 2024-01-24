@@ -10,6 +10,8 @@ const Message = require("./models/Message");
 const ws = require("ws");
 const fs = require("fs");
 const { setTimeout } = require("timers/promises");
+const { resolve } = require("path");
+const { rejects } = require("assert");
 
 dotenv.config(); //เพื่อเรียกใช้ไฟล์ .env
 const app = express();
@@ -91,6 +93,30 @@ app.get("/people", async (req, res) => {
   res.json(users);
 });
 
+const getUserDataFromRequest = (req) => {
+  return new Promise((resolve, rejects) => {
+    const token = req.cookies?.token;
+    if (token) {
+      jwt.verify(token, secret, {}, (err, userData) => {
+        if (err) throw err;
+        resolve(userData);
+      });
+    } else {
+      rejects("No Token");
+    }
+  });
+};
+app.get("/messages/:userId", async (req, res) => {
+  const { userId } = req.params;
+  const userData = await getUserDataFromRequest(req);
+  const ourUserId = userData.userId;
+  const messages = await Message.find({
+    sender: { $in: [userId, ourUserId] },
+    recipient: { $in: [userId, ourUserId] },
+  }).sort({ createAt: 1 });
+  res.json(messages);
+});
+
 //เป็นตัวบอกว่ามาจาก PORTไหน โดยดึงมาจากไฟล์ env
 const PORT = process.env.PORT;
 const server = app.listen(PORT, () => {
@@ -156,11 +182,12 @@ wss.on("connection", (connection, req) => {
       //เก็บไฟล์ในuploads
       const path = __dirname + "/uploads/" + filename;
       //ป้องกันการอัพโหลดไฟล์ชื่อซ้ำ
-      const bufferData = new Buffer(file.name.data.split(",")[1], "base64");
-      fs.writeFile(path, bufferData, () => {
+      //const bufferData = new Buffer(file.name.data.split(",")[1], "base64");
+      fs.writeFile(path, file.data.split(",")[1], "base64", () => {
         console.log("file saved: " + path);
       });
     }
+    
     if (recipient && (text || file)) {
       const messageDoc = await Message.create({
         sender: connection.userId,

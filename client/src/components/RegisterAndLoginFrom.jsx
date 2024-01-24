@@ -22,23 +22,25 @@ const RegisterAndLoginForm = () => {
   };
 
   return (
-    <div className="bg-blue-50 h-screen flex items-center justify-center">
-      <div className="bg-white rounded-lg p-6 shadow-md w-[350px] mx-auto mb-12">
-        <h1 className="flex justify-center  text-[20px] font-bold text-blue-500 mb-5">
+    <div className="bg-neutral-200 h-screen flex items-center justify-center">
+      
+      <div className="bg-white rounded-lg p-6 shadow-md w-[500px] mx-auto mb-12">
+        <h1 className="flex justify-center  text-[30px] font-bold text-blue-500 mb-5">
           WELCOME TO MERN-CHAT
         </h1>
         <form onSubmit={handleSubmit}>
           <input
             type="text"
             value={username}
-            className="block w-full rounded-lg p-2 mb-2 border font-semibold "
+            className="block w-full rounded-lg p-2 mb-2 border font-thin  "
             placeholder="Username"
             onChange={(e) => setUsername(e.target.value)}
           />
+          
           <input
             type="text"
             value={password}
-            className="block w-full rounded-lg p-2 mb-2 border font-semibold"
+            className="block w-full rounded-lg mt-[20px] p-2 mb-2 border font-thin"
             placeholder="Password"
             onChange={(e) => setPassword(e.target.value)}
           />
